@@ -1,0 +1,59 @@
+server:
+  port: 8080
+springdoc:
+  api-docs:
+    enabled: true       # Habilita la generación de la documentación de la API
+    path: /v3/api-docs  # Ruta donde se expone el archivo JSON con la especificación OpenAPI
+  swagger-ui:
+    enabled: true       # Habilita la interfaz Swagger UI
+    path: /swagger-ui.html  # Ruta para acceder a la UI de Swagger
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: 1234
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+  kafka:
+    bootstrap-servers: kafka:9092
+    consumer:
+      group-id: banco-busqueda
+      topic: banco-topic
+      enabled: true
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring:
+          json:
+            trusted:
+              packages: "*"
+    producer:
+      topic: banco-topic
+    listeners:
+      group-id: banco  # Flujo continuo
+    manual:
+      group-id: banco-busqueda  # Búsquedas por Key
+    properties:
+      print.key: true  # Imprimir la key en los mensajes
+      key.separator: " -> "  # Separador entre la key y el mensaje
+
+resilience4j:
+  retry:
+    instances:
+      kafka-retry:
+        max-attempts: 3  # Intentos máximos por mensaje
+        wait-duration: 2s  # Tiempo de espera entre cada intento
+        exponential-backoff-multiplier: 2.0  # Espera progresiva
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, metrics, retry, circuitbreakers
+  metrics:
+    enable:
+      all: true
